@@ -827,8 +827,8 @@ class FullBlockTest(BitcoinTestFramework):
         tx.vout.append(CTxOut(0, script_output))
         tx.vin.append(CTxIn(COutPoint(b64a.vtx[1].sha256, 0)))
         b64a = self.update_block("64a", [tx])
-        assert_equal(len(b64a.serialize()), MAX_BLOCK_SIZE + 8)
-        self.send_blocks([b64a], success=False, reject_code=1, reject_reason=b'error parsing message')
+        assert_equal(len(b64a.serialize()), MAX_BLOCK_BASE_SIZE + 8)
+        self.sync_blocks([b64a], success=False, reject_code=1, reject_reason='non-canonical ReadCompactSize():')
 
         # dashd doesn't disconnect us for sending a bloated block, but if we subsequently
         # resend the header message, it won't send us the getdata message again. Just
