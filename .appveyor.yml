@@ -7,19 +7,38 @@ clone_depth: 5
 environment:
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   CLCACHE_SERVER: 1
-  PACKAGES: berkeleydb boost-filesystem boost-signals2 boost-test libevent openssl rapidcheck zeromq
   PATH: 'C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%'
   PYTHONUTF8: 1
 cache:
-- C:\tools\vcpkg\installed -> appveyor.yml
-- C:\Users\appveyor\clcache -> appveyor.yml, build_msvc\**, **\Makefile.am, **\*.vcxproj.in
+- C:\tools\vcpkg\installed -> build_msvc\vcpkg-packages.txt
+- C:\Users\appveyor\clcache -> .appveyor.yml, build_msvc\**, **\Makefile.am, **\*.vcxproj.in
+- C:\Qt5.9.8_x64_static_vs2019
 install:
 - cmd: pip install --quiet git+https://github.com/frerich/clcache.git@v4.2.0
 # Disable zmq test for now since python zmq library on Windows would cause Access violation sometimes.
 # - cmd: pip install zmq
-- cmd: vcpkg remove --outdated --recurse
-- cmd: vcpkg install --triplet %PLATFORM%-windows-static %PACKAGES% > NUL
-- cmd: del /s /q C:\Tools\vcpkg\installed\%PLATFORM%-windows-static\debug # Remove unused debug library
+# Powershell block below is to install the c++ dependencies via vcpkg. The pseudo code is:
+# 1. Check whether the vcpkg install directory exists (note that updating the vcpkg-packages.txt file
+#    will cause the appveyor cache rules to invalidate the directory)
+# 2. If the directory is missing:
+#    a. Update the vcpkg source (including port files) and build the vcpkg binary,
+#    b. Install the missing packages.
+- ps: |
+      $env:PACKAGES = Get-Content -Path build_msvc\vcpkg-packages.txt
+      Write-Host "vcpkg list: $env:PACKAGES"
+      if(!(Test-Path -Path ($env:VCPKG_INSTALL_PATH))) {
+          cd c:\tools\vcpkg
+          $env:GIT_REDIRECT_STDERR = '2>&1' # git is writing non-errors to STDERR when doing git pull. Send to STDOUT instead.
+          git pull origin master
+          .\bootstrap-vcpkg.bat
+          Add-Content "C:\tools\vcpkg\triplets\$env:PLATFORM-windows-static.cmake" "set(VCPKG_BUILD_TYPE release)"
+          .\vcpkg install --triplet $env:PLATFORM-windows-static $env:PACKAGES.split() > $null
+          cd "$env:APPVEYOR_BUILD_FOLDER"
+      }
+      else {
+        Write-Host "required vcpkg packages already installed."
+      }
+      c:\tools\vcpkg\vcpkg integrate install
 before_build:
 - ps:  clcache -M 536870912
 - cmd: python build_msvc\msvc-autogen.py

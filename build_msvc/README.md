@@ -33,24 +33,32 @@ Building
 ---------------------
 The instructions below use vcpkg to install the dependencies.
 
-- Clone and vcpkg from the [github repository](https://github.com/Microsoft/vcpkg) and install as per the instructions in the main README.md.
-- Install the required packages (replace x64 with x86 as required):
-- Install the required dependencies with vcpkg:
+- Install [`vcpkg`](https://github.com/Microsoft/vcpkg).
+- Install the required packages (replace x64 with x86 as required). The list of required packages can be found in the `build_msvc\vcpkg-packages.txt` file. The PowerShell command below will work if run from the repository root directory and `vcpkg` is in the path. Alternatively the contents of the packages text file can be pasted in place of the `Get-Content` cmdlet.
 
 ```
-    PS >.\vcpkg install boost:x64-windows-static `
-    libevent:x64-windows-static `
-    openssl:x64-windows-static `
-    zeromq:x64-windows-static `
-    berkeleydb:x64-windows-static `
-    secp256k1:x64-windows-static `
-    leveldb:x64-windows-static
+PS >.\vcpkg install --triplet x64-windows-static $(Get-Content -Path build_msvc\vcpkg-packages.txt).split()
+```
+
+- Use Python to generate `*.vcxproj` from Makefile
+
+```
+PS >py -3 msvc-autogen.py
+```
+
+- An optional step is to adjust the settings in the build_msvc directory and the common.init.vcxproj file. This project file contains settings that are common to all projects such as the runtime library version and target Windows SDK version. The Qt directories can also be set.
+
+- Build with Visual Studio 2017 or msbuild.
+
+```
+msbuild /m bitcoin.sln /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v141 /t:build
+>>>>>>> a6f6333ba2 (Merge #17416: Appveyor improvement - text file for vcpkg package list)
 ```
 
 - Use Python to generate *.vcxproj from Makefile
 
 ```
-    PS >python msvc-autogen.py
+msbuild /m bitcoin.sln /p:Platform=x64 /p:Configuration=Release /t:build
 ```
 
 - Build in Visual Studio.
