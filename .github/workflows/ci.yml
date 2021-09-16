@@ -12,6 +12,7 @@ jobs:
         QT_LOCAL_PATH: 'C:\Qt5.9.8_x64_static_vs2019'
         VCPKG_INSTALL_PATH: "$env:VCPKG_INSTALLATION_ROOT/installed"
         PLATFORM: x64
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
     - uses: actions/checkout@v1
 
